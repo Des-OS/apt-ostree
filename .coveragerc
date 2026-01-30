@@ -1,0 +1,6 @@
+[run]
+branch = True
+source = apt_ostree
+
+[report]
+ignore_errors = True

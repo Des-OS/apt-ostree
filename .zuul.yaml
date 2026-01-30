@@ -1,0 +1,33 @@
+---
+- project:
+    templates:
+      - publish-stx-docs
+    check:
+      jobs:
+        - openstack-tox-linters
+        - apt-ostree-tox-py39
+        - apt-ostree-tox-flake8
+    gate:
+      jobs:
+        - openstack-tox-linters
+        - apt-ostree-tox-py39
+        - apt-ostree-tox-flake8
+- job:
+    name: apt-ostree-tox-py39
+    parent: tox-py39
+    description: |
+        Run py39 test for apt-ostree
+    nodeset: debian-bullseye
+    vars:
+        tox_envlist: py39
+        tox_extra_args: --sitepackages
+
+- job:
+    name: apt-ostree-tox-flake8
+    parent: tox
+    description: |
+        Run flake8 test for apt-ostree
+    nodeset: debian-bullseye
+    vars:
+        tox_envlist: flake8
+        tox_extra_args: --sitepackages

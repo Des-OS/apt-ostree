@@ -1,0 +1,25 @@
+# Copyright (c) 2023 Wind River Systems, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+#
+---
+mmdebstrap:
+  suite: bullseye
+  architectures: amd64
+  components:
+    - main
+    - contrib
+    - non-free
+    - non-free-firmware
+  vairant: minbase
+
+  setup-hooks:
+    - 'sync-in overlay/debian/ /'
+
+  packages:
+    - linux-image-amd64
+
+    - ostree
+    - ostree-boot
+    - dracut

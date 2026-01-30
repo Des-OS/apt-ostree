@@ -1,0 +1,12 @@
+---
+extends: default
+
+rules:
+  line-length:
+    # matches hardcoded 160 value from ansible-lint
+    max: 160
+
+ignore: |
+  .zuul.yaml
+  config/debian/bookworm/image/image.yaml
+  config/debian/trixie/image/image.yaml
