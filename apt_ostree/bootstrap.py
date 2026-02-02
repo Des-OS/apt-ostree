@@ -1,5 +1,6 @@
 """
 Copyright (c) 2023 Wind River Systems, Inc.
+Modified 2026 Ivan Ucherdzhiev
 
 SPDX-License-Identifier: Apache-2.0
 
@@ -105,6 +106,16 @@ class Bootstrap:
         if architecture:
             cmd += [f"--architectures={architecture}"]
 
+        variant = config.get("variant", None)
+        if variant:
+            cmd += [f"--variant={variant}"]
+            self.logging.info(f"Found variant: {variant}")
+            
+        aptopt = config.get("aptopt", None)        
+        if aptopt:
+            cmd += [f"--aptopt={aptopt}"]
+            self.logging.info(f"Found aptopt: {aptopt}")
+
         # Add additional archive pockets.
         components = config.get("components", None)
         if components is None:
@@ -132,6 +143,8 @@ class Bootstrap:
         customize_hooks = config.get("customize-hooks", None)
         if customize_hooks:
             cmd += [f"--customize-hook={hook}" for hook in customize_hooks]
+        if hook_directories:
+            cmd += [f"--hook_directory={direcroty}" for direcroty in hook_directories]
 
         self.logging.info("Running mmdebstrap.")
         run_command(cmd, cwd=workdir)
