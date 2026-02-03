@@ -109,12 +109,10 @@ class Bootstrap:
         variant = config.get("variant", None)
         if variant:
             cmd += [f"--variant={variant}"]
-            self.logging.info(f"Found variant: {variant}")
             
         aptopt = config.get("aptopt", None)        
         if aptopt:
             cmd += [f"--aptopt={aptopt}"]
-            self.logging.info(f"Found aptopt: {aptopt}")
 
         # Add additional archive pockets.
         components = config.get("components", None)
@@ -137,14 +135,18 @@ class Bootstrap:
         setup_hooks = config.get("setup-hooks", None)
         if setup_hooks:
             cmd += [f"--setup-hook={hook}" for hook in setup_hooks]
-        extract_hooks = config.get("extract-hook", None)
+            
+        extract_hooks = config.get("extract-hooks", None)
         if extract_hooks:
             cmd += [f"--extract-hook={hook}" for hook in extract_hooks]
+            
         customize_hooks = config.get("customize-hooks", None)
         if customize_hooks:
             cmd += [f"--customize-hook={hook}" for hook in customize_hooks]
+            
+        hook_directories = config.get("hook_directories", None)
         if hook_directories:
-            cmd += [f"--hook_directory={direcroty}" for direcroty in hook_directories]
+            cmd += [f"--hook-directory={direcroty}" for direcroty in hook_directories]
 
         self.logging.info("Running mmdebstrap.")
         run_command(cmd, cwd=workdir)
@@ -168,12 +170,15 @@ class Bootstrap:
 
     def create_ostree(self, rootdir):
         """Create an ostree branch from a rootfs."""
-        self.logging.info("Setting up /usr/lib/ostree-boot")
+        self.logging.info("Setting up kernel and initramfs")
         self.setup_boot(rootdir,
                         rootdir.joinpath("boot"),
-                        rootdir.joinpath("usr/lib/ostree-boot"))
+                        rootdir.joinpath("usr/lib/modules"))
+        self.logging.info("Create tmpfiles")
         self.create_tmpfile_dir(rootdir)
+        self.logging.info("Convert to ostree")
         self.convert_to_ostree(rootdir)
+        self.logging.info("Ostree file structure created succesfully!")
 
     def convert_to_ostree(self, rootdir):
         """Convert rootfs to ostree."""
@@ -184,7 +189,6 @@ class Bootstrap:
 
         with self.console.status(f"Converting {rootdir} to ostree."):
             dir_perm = 0o755
-
             # Copying /var
             self.sanitize_usr_symlinks(rootdir)
             self.logging.info("Moving /var to /usr/rootdirs.")
@@ -224,6 +228,7 @@ class Bootstrap:
 
             self.logging.info("Setting up symlinks.")
             TOPLEVEL_LINKS = {
+                "home": "var/home",
                 "media": "run/media",
                 "mnt": "var/mnt",
                 "opt": "var/opt",
@@ -265,8 +270,16 @@ class Bootstrap:
                 if toplevel != 'var':
                     continue
 
-                os.remove(p)
-                os.link(target, p)
+                try :
+                    os.remove(p)
+                    if os.path.isfile(target):
+                        os.link(target, p)
+                    elif os.path.isdir(target):
+                        shutil.copytree(target, p,symlinks=True)
+                    
+                except Exception as e:
+                    self.logging.info(f"Error moving file: {e}")
+                    sys.exit(1)
 
     def get_toplevel(self, path):
         """Get the top level diretory."""
@@ -282,7 +295,7 @@ class Bootstrap:
         initrd = None
         dtbs = None
         version = None
-
+        
         try:
             os.mkdir(targetdir)
         except OSError:
@@ -299,27 +312,29 @@ class Bootstrap:
             elif item.startswith("dtbs"):
                 assert dtbs is None
                 dtbs = os.path.join(bootdir, item)
-            else:
+            elif item.startswith("System.map"):
                 # Move all other artifacts as is
-                shutil.move(os.path.join(bootdir, item), targetdir)
+                try : 
+                    shutil.move(os.path.join(bootdir, item), targetdir)
+                except Exception as e:
+                    self.logging.info(f"Error moving file: {e}")
         assert vmlinuz is not None
 
-        m = hashlib.sha256()
-        m.update(open(os.path.join(bootdir, vmlinuz), mode="rb").read())
-        if initrd is not None:
-            m.update(open(os.path.join(bootdir, initrd), "rb").read())
-
-        csum = m.hexdigest()
-
-        os.rename(os.path.join(bootdir, vmlinuz),
-                  os.path.join(targetdir, vmlinuz + "-" + csum))
+        try:
+            os.rename(os.path.join(bootdir, vmlinuz),
+                      os.path.join(targetdir, version ,"vmlinuz"))
+        except Exception as e:
+                    self.logging.info(f"Error moving file: {e}")
+                    sys.exit(1)
 
         if initrd is not None:
-            os.rename(os.path.join(bootdir, initrd),
-                      os.path.join(targetdir,
-                                   initrd.replace(
-                                       "initrd.img", "initramfs")
-                                   + "-" + csum))
+            try:
+                os.rename(os.path.join(bootdir, initrd),
+                          os.path.join(targetdir,version,"initramfs.img"))
+            except Exception as e:
+                        self.logging.info(f"Error moving file: {e}")
+                        sys.exit(1)
+            
 
     def create_tmpfile_dir(self, rootdir):
         """Ensure directoeies in /var are created."""
