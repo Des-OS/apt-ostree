@@ -203,6 +203,9 @@ class Bootstrap:
             )
             shutil.rmtree(rootdir.joinpath("var"))
             os.mkdir(rootdir.joinpath("var"), dir_perm)
+            
+            shutil.rmtree(rootdir.joinpath("dev"))
+            os.mkdir(rootdir.joinpath("dev"), 0o755)
 
             # Remove unecessary files
             self.logging.info("Removing unnecessary files.")
