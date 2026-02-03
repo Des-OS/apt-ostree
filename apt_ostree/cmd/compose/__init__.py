@@ -14,6 +14,7 @@ from apt_ostree.cmd.compose.create import create
 from apt_ostree.cmd.compose.image import image
 from apt_ostree.cmd.compose.init import init
 from apt_ostree.cmd.compose.install import install
+from apt_ostree.cmd.compose.pull_local import pull_local
 from apt_ostree.cmd.compose.repo import repo
 from apt_ostree.cmd.compose.restore import restore
 from apt_ostree.cmd.compose.rollback import rollback
@@ -21,7 +22,8 @@ from apt_ostree.cmd.compose.uninstall import uninstall
 from apt_ostree.cmd.compose.upgrade import upgrade
 
 
-@click.group(help="Commands to build ostree repo/image.")
+
+@click.group(help="Commands to build/manage ostree repo/image.")
 @click.pass_context
 def compose(ctxt):
     pass
@@ -35,6 +37,7 @@ compose.add_command(image)
 compose.add_command(init)
 compose.add_command(install)
 compose.add_command(upgrade)
+compose.add_command(pull_local)
 compose.add_command(repo)
 compose.add_command(restore)
 compose.add_command(rollback)

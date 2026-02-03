@@ -48,34 +48,6 @@ class Compose:
 
         self.ostree.ostree_summary_update()
 
-    def backup(self, export_dir):
-        """Export branch to a new ostree repo."""
-        export_dir = pathlib.Path(export_dir)
-        if not export_dir.exists():
-            self.logging.error("Ostree export repo does not exist")
-            sys.exit(1)
-
-        # Copy the existing branch from one repository to another.
-        self.logging.info(
-            f"Pulling from {self.state.branch} to {export_dir}.")
-        self.ostree.ostree_pull(export_dir)
-
-        self.ostree.ostree_summary_update(export_dir)
-
-    def restore(self, import_dir):
-        """Import a branch into a repostiory."""
-        import_dir = pathlib.Path(import_dir)
-        if not import_dir.exists():
-            self.logging.error("Ostree import repo does not exist")
-            sys.exit(1)
-
-        # Copy the existing branch from one repository to another.
-        self.logging.info(
-            f"Pulling from {self.state.branch} to {import_dir}.")
-        self.ostree.ostree_pull(import_dir)
-
-        self.ostree.ostree_summary_update(import_dir)
-
     def enablerepo(self):
         """Enable Debian package feed."""
         try:
@@ -96,34 +68,49 @@ class Compose:
         self._checkout(rootfs, self.state.branch)
         self.deploy.prestaging(rootfs)
 
-    def commit(self, parent):
+    def commit(self, rootfs):
         """Commit changes to an ostree repo."""
-        self.logging.info(f"Cloning {self.state.branch} from {parent}.")
-        rev = self._checkout(parent)
-        if not rev:
-            self.logging.error("Failed to fetch commit")
+        rootfs = pathlib.Path(rootfs)
+        if not rootfs.exists():
+            self.logging.error(f"Directory doesnt exists: {rootfs}")
             sys.exit(1)
-        with self.console.status(f"Commiting {rev[:10]}."):
+        self.deploy.poststaging(rootfs)
+        with self.console.status(f"Commiting to branch {self.state.branch}."):
             r = self.ostree.ostree_commit(
-                root=self.rootfs,
+                rootfs,
                 branch=self.state.branch,
-                parent=rev,
                 repo=self.state.repo,
-                subject="Forked from parent",
-                msg=f"Forked from {parent} ({rev[:10]})."
+                subject="apt-ostree compose commit",
+                msg=f"apt-ostree compose commit"
             )
             if r.returncode != 0:
                 self.logging.error("Failed to commit.")
                 sys.exit(1)
+            r = self.ostree.ostree_summary_update()
+            if r.returncode != 0:
+                self.logging.error("Failed to update summary.")
+                sys.exit(1)
 
-        self.logging.info(f"Successfully commited {self.state.branch}"
-                          f"({rev[:10]}) from {parent}.")
-        self.ostree.ostree_summary_update(self.state.repo)
-        self.logging.info("Cleaning up.")
-        try:
-            shutil.rmtree(self.rootfs)
-        except OSError as e:
-            self.logging.error(f"Failed to remove rootfs {self.rootfs}: {e}")
+
+    def pull_local(self, child):
+        """Pull changes from parent repo to child repo."""
+        child = pathlib.Path(child)
+        if not child.exists():
+            self.logging.error("Ostree import repo does not exist")
+            sys.exit(1)
+
+        # Copy the existing branch from one repository to another.
+        self.logging.info(
+            f"Pulling from {self.state.branch} to {child}.")
+        with self.console.status(f"Commiting to branch {self.state.branch}."):
+            r = self.ostree.ostree_pull(child)
+            if r.returncode != 0:
+                self.logging.error("Failed to pull.")
+                sys.exit(1)
+            r = self.ostree.ostree_summary_update(child)
+            if r.returncode != 0:
+                self.logging.error("Failed to update summary.")
+                sys.exit(1)
 
     def _checkout(self, rootfs=None, branch=None):
         """Checkout a commit from an ostree branch."""

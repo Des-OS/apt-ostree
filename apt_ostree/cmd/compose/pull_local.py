@@ -1,6 +1,6 @@
 """
 Copyright (c) 2023 Wind River Systems, Inc.
-
+created by Ivan Ucherdzhiev
 SPDX-License-Identifier: Apache-2.0
 
 """
@@ -17,23 +17,23 @@ from apt_ostree.cmd import pass_state_context
 from apt_ostree.compose import Compose
 
 
-@click.command(help="Commit a rootfs to an OSTree repository.")
+@click.command(help="Pull branch from local parent repo to local child repo.")
 @pass_state_context
 @repo_option
 @branch_option
-@click.argument(
-    "rootfs",
-    nargs=1
+@click.option(
+    "--child",
+    help="Parrent repo to pull from",
 )
 @gpg_key_option
-def commit(state,
+def pull_local(state,
            repo,
            branch,
-           rootfs,
+           child,
            gpg_key):
     try:
-        Compose(state).commit(
-            rootfs
+        Compose(state).pull_local(
+            child
         )
     except KeyboardInterrupt:
         click.secho("\n" + ("Exiting at your request."))
