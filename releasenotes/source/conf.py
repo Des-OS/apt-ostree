@@ -56,7 +56,7 @@ project = 'apt_ostree Release Notes'
 copyright = '2022, OpenStack Developers'
 
 # openstackdocstheme options
-openstackdocs_repo_name = 'starlingx/apt-ostree'
+openstackdocs_repo_name = 'des-os/apt-ostree'
 openstackdocs_bug_project = ''
 openstackdocs_bug_tag = ''
 openstackdocs_auto_name = 'False'
